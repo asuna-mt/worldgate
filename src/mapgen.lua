@@ -106,7 +106,7 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
 
       -- Probe heightmap for suitable location
       local heightmap = minetest.get_mapgen_object("heightmap") or {}
-      for i = 1, 4 do
+      for i = 1, 8 do
         local randomx = pcgr:next(emin.x,emax.x)
         local randomz = pcgr:next(emin.z,emax.z)
         local heightmapy = heightmap[index2d(randomx,randomz)]
@@ -145,7 +145,7 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
       if not location then
         local air, nodecount = minetest.find_nodes_in_area(emin,emax,"air")
         local nair = nodecount.air
-        for i = 1, math.min(nair,4) do
+        for i = 1, math.min(nair,8) do
           local pos = va:indexp(air[pcgr:next(1,nair)])
           while vdata[pos] == minetest.CONTENT_AIR do
             pos = pos - ystride -- probe downwards until we find something that isn't air
@@ -158,28 +158,33 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
         end
       end
 
-      -- If mapchunk is completely solid or empty, then generate in any random location
+      -- If mapchunk is completely solid or empty, then generate in a random location
       if not location then
-        local randomx = pcgr:next(emin.x,emax.x)
-        local randomy = pcgr:next(emin.y,emax.y)
-        local randomz = pcgr:next(emin.z,emax.z)
+        for i = 1, 8 do
+          local randomx = pcgr:next(emin.x,emax.x)
+          local randomy = pcgr:next(emin.y,emax.y)
+          local randomz = pcgr:next(emin.z,emax.z)
 
-        -- Select a random location
-        location = vn(randomx,randomy,randomz)
-        strategy = "random"
-
-        -- Only spawn in midair or underwater if allowed
-        local pos = va:indexp(location)
-        for ypos = pos, pos + ystride * 11, ystride do
-          local ydata = vdata[ypos]
-          if not ydata or ydata == minetest.CONTENT_IGNORE or (not underwaterspawn and water[ydata]) or (ydata == pos and not midairspawn and ydata == minetest.CONTENT_AIR) then
-            -- Trigger failure callbacks
-            for c = 1, #worldgate.worldgate_failed_callbacks do
-              worldgate.worldgate_failed_callbacks[c](gate)
+          -- Only spawn in midair or underwater if allowed
+          local pos = va:indexp(vn(randomx,randomy,randomz))
+          for ypos = pos, pos + ystride * 11, ystride do
+            local ydata = vdata[ypos]
+            if ydata and ydata ~= minetest.CONTENT_IGNORE and (underwaterspawn or not water[ydata]) and (ypos == pos and (midairspawn or ydata ~= minetest.CONTENT_AIR) or true) then
+              location = va:position(pos)
+              strategy = "random"
+              break
             end
-            return -- cannot generate this worldgate
           end
         end
+      end
+
+      -- Fail if no suitable location found
+      if not location then
+        -- Trigger failure callbacks
+        for c = 1, #worldgate.worldgate_failed_callbacks do
+          worldgate.worldgate_failed_callbacks[c](gate)
+        end
+        return -- cannot generate this worldgate
       end
 
       -- Adjust location by y + 1

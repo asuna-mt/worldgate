@@ -33,3 +33,6 @@ worldgate.superextenders (Increase extender range?) bool true
 
 # Glowing Telemosaic beacons?
 worldgate.beaconglow (Glowing Telemosaic beacons?) bool true
+
+# Consume Mese Crystal Fragments after converting to a Telemosaic key? By default, Telemosaic keys are converted back to crystal fragments after use.
+worldgate.destroykeys (Consume Telemosaic keys?) bool false
