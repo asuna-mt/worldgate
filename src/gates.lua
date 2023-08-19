@@ -58,22 +58,29 @@ if minetest.settings:get_bool("worldgate.native",true) then
     for x = min, max, spread do
       for z = min, max, spread do
         local pos = vn(x,0,z)
-        surface_gates[minetest.hash_node_position(pos)] = {
+        local hpos = minetest.hash_node_position(pos)
+        surface_gates[hpos] = {
           position = vn(x + pcgr:next(xzjittern,xzjitterp),pcgr:next(0,24),z + pcgr:next(xzjittern,xzjitterp)),
           base = get_random_base(pcgr),
           decor = get_random_decor(pcgr),
           quality = get_random_quality(pcgr),
           exact = false,
           destination = (function() -- placeholder to be converted to an actual gate
-            local neighborx = ({
-              x == min and x + spread or x - spread,
-              x == max and x - spread or x + spread,
-            })[pcgr:next(1,2)]
-            local neighborz = ({
-              z == min and z + spread or z - spread,
-              z == max and z - spread or z + spread,
-            })[pcgr:next(1,2)]
-            return minetest.hash_node_position({ x = neighborx, y = 0, z = neighborz })
+            local nhashes = {
+              minetest.hash_node_position(vn(x == min and x + spread or x - spread,0,z == min and z + spread or z - spread)),
+              minetest.hash_node_position(vn(x == min and x + spread or x - spread,0,z == max and z - spread or z + spread)),
+              minetest.hash_node_position(vn(x == max and x - spread or x + spread,0,z == min and z + spread or z - spread)),
+              minetest.hash_node_position(vn(x == max and x - spread or x + spread,0,z == max and z - spread or z + spread)),
+            }
+            local neighbors = {}
+            for n = 1, 4 do
+              n = nhashes[n]
+              local g = surface_gates[n]
+              if not g or g.destination ~= hpos then
+                neighbors[#neighbors + 1] = n
+              end
+            end
+            return neighbors[1] and neighbors[pcgr:next(1,#neighbors)] or nhashes[pcgr:next(1,4)]
           end)(),
         }
       end

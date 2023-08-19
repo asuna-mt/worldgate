@@ -46,3 +46,33 @@ if minetest.settings:get_bool("worldgate.beaconglow",true) then
     })
   end
 end
+
+-- Override right-click function to consume mese crystal shards after use as a
+-- Telemosaic key, if configured
+if minetest.settings:get_bool("worldgate.destroykeys",true) then
+  local trc = telemosaic.rightclick
+  telemosaic.rightclick = function(pos, node, player, itemstack, pointed_thing)
+    local item = itemstack:get_name()
+    local returned_item = trc(pos, node, player, itemstack, pointed_thing)
+    if item == "telemosaic:key" and returned_item:get_name() == "default:mese_crystal_fragment" then
+      return ItemStack()
+    else
+      return returned_item
+    end
+  end
+
+  for _,beacon in ipairs({
+    "telemosaic:beacon",
+    "telemosaic:beacon_err",
+    "telemosaic:beacon_disabled",
+    "telemosaic:beacon_off",
+    "telemosaic:beacon_protected",
+    "telemosaic:beacon_err_protected",
+    "telemosaic:beacon_disabled_protected",
+    "telemosaic:beacon_off_protected",
+  }) do
+    minetest.override_item(beacon,{
+      on_rightclick = telemosaic.rightclick
+    })
+  end
+end
