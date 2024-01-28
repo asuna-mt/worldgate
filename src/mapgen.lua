@@ -24,7 +24,7 @@ local vmcache = {} -- VoxelManip data cache, increases performance
 local schematic_airspace = worldgate.modpath .. "/schematics/worldgate_airspace.mts"
 local schematic_platform = worldgate.modpath .. "/schematics/worldgate_platform.mts"
 
-local extender_break_chance = minetest.settings:get("worldgate.breakage",8) or 8
+local extender_break_chance = tonumber(minetest.settings:get("worldgate.breakage",8) or 8)
 
 local quality_selector = {
   [0] = function(pcgr) -- 25% chance for tier 1 extender to be cobblestone
