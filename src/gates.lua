@@ -8,15 +8,15 @@ if minetest.settings:get_bool("worldgate.native",true) then
   local pcgr = PcgRandom(minetest.get_mapgen_setting("seed"))
 
   -- Get distance between gates (spread)
-  local spread = minetest.settings:get("worldgate.native.spread",1000) or 1000
+  local spread = tonumber(minetest.settings:get("worldgate.native.spread",1000) or 1000)
 
   -- Do not generate gates beyond totalmax to prevent any wierdness with world
   -- boundaries
   local totalmax = 29900
 
   -- Get minimum and maximum y values
-  local ymin = math.max(-totalmax,minetest.settings:get("worldgate.ymin",-totalmax) or -totalmax)
-  local ymax = math.min(totalmax,minetest.settings:get("worldgate.ymax",totalmax) or totalmax)
+  local ymin = math.max(-totalmax,tonumber(minetest.settings:get("worldgate.ymin",-totalmax) or -totalmax))
+  local ymax = math.min(totalmax,tonumber(minetest.settings:get("worldgate.ymax",totalmax) or totalmax))
 
   -- Cache frequently used global functions for better performance
   local add_gate = worldgate.add_gate_unsafe -- native gates are made with respect to checks
@@ -36,7 +36,7 @@ if minetest.settings:get_bool("worldgate.native",true) then
 
   -- Generate x/z values with jitter so that worldgate locations are less
   -- predictable
-  local xzjitterp = math.floor(spread * (minetest.settings:get("worldgate.native.xzjitter",12.5) or 12.5) / 100)
+  local xzjitterp = math.floor(spread * tonumber(minetest.settings:get("worldgate.native.xzjitter",12.5) or 12.5) / 100)
   local xzjittern = -xzjitterp
 
   -- Function to get a gate based on an x/y/z coordinate
