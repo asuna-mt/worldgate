@@ -52,8 +52,8 @@ function worldgate.add_gate_unsafe(def)
 end
 
 -- Function for adding new worldgates
-local ymin = math.max(-29900,tonumber(minetest.settings:get("worldgate.ymin",-29900) or -29900))
-local ymax = math.min(29900,tonumber(minetest.settings:get("worldgate.ymax",29900) or 29900))
+local ymin = math.max(-29900,worldgate.settings.ymin)
+local ymax = math.min(29900,worldgate.settings.ymax)
 function worldgate.add_gate(def)
   -- Position must be a valid vector
   if not def.position then

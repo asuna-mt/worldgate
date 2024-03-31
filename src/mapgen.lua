@@ -3,13 +3,13 @@
 --
 
 -- Do not register mapgen if worldgate mapgen is disabled
-if not minetest.settings:get_bool("worldgate.mapgen",true) then
+if not worldgate.settings.mapgen then
   return
 end
 
 -- Spawning flags
-local underwaterspawn = minetest.settings:get_bool("worldgate.underwaterspawn",false)
-local midairspawn = minetest.settings:get_bool("worldgate.midairspawn",false)
+local underwaterspawn = worldgate.settings.underwaterspawn
+local midairspawn = worldgate.settings.midairspawn
 
 -- Telemosaic location hashing function
 local function hash_pos(pos)
@@ -24,7 +24,7 @@ local vmcache = {} -- VoxelManip data cache, increases performance
 local schematic_airspace = worldgate.modpath .. "/schematics/worldgate_airspace.mts"
 local schematic_platform = worldgate.modpath .. "/schematics/worldgate_platform.mts"
 
-local extender_break_chance = tonumber(minetest.settings:get("worldgate.breakage",8) or 8)
+local extender_break_chance = worldgate.settings.breakage
 
 local quality_selector = {
   [0] = function(pcgr) -- 25% chance for tier 1 extender to be cobblestone
@@ -42,6 +42,48 @@ local water = {
 }
 
 local vn = vector.new
+
+-- Disallowed nodes to spawn on; no prefix means group
+local disallowed_nodes = {
+  "leaves",
+  "tree",
+}
+local disallowed_nodes_length = #disallowed_nodes
+local disallowed_cids = {[minetest.CONTENT_AIR] = true}
+
+minetest.register_on_mods_loaded(function()
+  for node,def in pairs(minetest.registered_nodes) do
+    for i = 1, disallowed_nodes_length do
+      i = disallowed_nodes[i]
+      if node == i or minetest.get_item_group(node,i) > 0 then
+        disallowed_cids[minetest.get_content_id(node)] = true
+      end
+    end
+  end
+end)
+
+-- Bricks to cobblestone map for quality degradation
+local bricks_list = {
+  "default:stonebrick",
+  "stairs:stair_stonebrick",
+  "stairs:stair_inner_stonebrick",
+  "stairs:stair_outer_stonebrick",
+  "stairs:slab_stonebrick",
+}
+
+local bricks_map = {
+  ["default:stonebrick"] = "default:cobble",
+  ["stairs:stair_stonebrick"] = "stairs:stair_cobble",
+  ["stairs:stair_inner_stonebrick"] = "stairs:stair_inner_cobble",
+  ["stairs:stair_outer_stonebrick"] = "stairs:stair_outer_cobble",
+  ["stairs:slab_stonebrick"] = "stairs:slab_cobble",
+}
+
+local bricks_degrade_chance = {
+  [-1] = 9,
+  [0] = 42,
+  [1] = 200,
+}
 
 -- Worldgate mapgen function
 minetest.register_on_generated(function(minp,maxp,blockseed)
@@ -147,7 +189,7 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
         local nair = nodecount.air
         for i = 1, math.min(nair,8) do
           local pos = va:indexp(air[pcgr:next(1,nair)])
-          while vdata[pos] == minetest.CONTENT_AIR do
+          while disallowed_cids[vdata[pos]] do
             pos = pos - ystride -- probe downwards until we find something that isn't air
           end
           if vdata[pos] and vdata[pos] ~= minetest.CONTENT_IGNORE then
@@ -212,14 +254,32 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
     -- Process extenders based on gate quality
     for _,epos in ipairs(minetest.find_nodes_in_area(location:add(vn(-6,0,-6)),location:add(vn(6,3,6)),"group:worldgate_extender")) do
       if pcgr:next(1,100) <= extender_break_chance then -- chance for any extender to be broken
-        minetest.set_node(epos,{ name = "default:cobble", param2 = 0 })
+        minetest.swap_node(epos,{ name = "default:cobble", param2 = 0 })
       else
-        minetest.set_node(epos,quality_selector[minetest.get_item_group(minetest.get_node(epos).name,"worldgate_extender") + gate.quality](pcgr))
+        minetest.swap_node(epos,quality_selector[minetest.get_item_group(minetest.get_node(epos).name,"worldgate_extender") + gate.quality](pcgr))
+      end
+    end
+
+    -- Replace bricks with cobblestone based on gate quality
+    local bricks = minetest.find_nodes_in_area(location:add(vn(-6,0,-6)),location:add(vn(6,13,6)),bricks_list)
+    local brick_degrade_chance = bricks_degrade_chance[gate.quality]
+    for _,brick in ipairs(bricks) do
+      if pcgr:next(1,brick_degrade_chance) == 1 then
+        local brick_node = minetest.get_node(brick)
+        minetest.swap_node(brick,{ name = bricks_map[brick_node.name], param2 = brick_node.param2 })
       end
     end
 
     -- Write the gate's position to the beacon's node meta for linking purposes
-    local beacon = location:add(vn(0,2,0))
+    local beacon = (function()
+      for dy = 2, 0, -1 do
+        local beacon_location = location:add(vn(0,dy,0))
+        local beacon_node = minetest.get_node(beacon_location)
+        if beacon_node and beacon_node.name:find("^telemosaic:beacon") then
+          return beacon_location
+        end
+      end
+    end)()
     local nodemeta = minetest.get_meta(beacon)
     nodemeta:set_string("worldgate:source",minetest.pos_to_string(gate.position))
     if gate.destination then

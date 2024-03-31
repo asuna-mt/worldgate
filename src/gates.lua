@@ -3,20 +3,20 @@
 --
 
 -- Generate gates if the mod is configured to do so
-if minetest.settings:get_bool("worldgate.native",true) then
+if worldgate.settings.native then
   -- Define rng based on the world seed
   local pcgr = PcgRandom(minetest.get_mapgen_setting("seed"))
 
   -- Get distance between gates (spread)
-  local spread = tonumber(minetest.settings:get("worldgate.native.spread",1000) or 1000)
+  local spread = worldgate.settings.native_spread
 
   -- Do not generate gates beyond totalmax to prevent any wierdness with world
   -- boundaries
   local totalmax = 29900
 
   -- Get minimum and maximum y values
-  local ymin = math.max(-totalmax,tonumber(minetest.settings:get("worldgate.ymin",-totalmax) or -totalmax))
-  local ymax = math.min(totalmax,tonumber(minetest.settings:get("worldgate.ymax",totalmax) or totalmax))
+  local ymin = math.max(-totalmax,worldgate.settings.ymin)
+  local ymax = math.min(totalmax,worldgate.settings.ymax)
 
   -- Cache frequently used global functions for better performance
   local add_gate = worldgate.add_gate_unsafe -- native gates are made with respect to checks
@@ -36,7 +36,7 @@ if minetest.settings:get_bool("worldgate.native",true) then
 
   -- Generate x/z values with jitter so that worldgate locations are less
   -- predictable
-  local xzjitterp = math.floor(spread * tonumber(minetest.settings:get("worldgate.native.xzjitter",12.5) or 12.5) / 100)
+  local xzjitterp = math.floor(spread * worldgate.settings.native_xzjitter / 100)
   local xzjittern = -xzjitterp
 
   -- Function to get a gate based on an x/y/z coordinate
@@ -50,8 +50,12 @@ if minetest.settings:get_bool("worldgate.native",true) then
     }
   end
 
+  -- Probability table for gate quality bias in favor of average and above
+  -- average quality values (20% poor, 50% average, 30% above average)
+  local quality_bias = {-1,-1,0,0,0,0,0,1,1,1}
+
   -- Link gates if configured, else generate gates with no destinations
-  if minetest.settings:get_bool("worldgate.link",true) then
+  if worldgate.settings.native_link then
     -- Generate x/z gate definitions for y = 0 since these are the destination
     -- gates of all native gates
     local surface_gates = {}
@@ -63,7 +67,7 @@ if minetest.settings:get_bool("worldgate.native",true) then
           position = vn(x + pcgr:next(xzjittern,xzjitterp),pcgr:next(0,24),z + pcgr:next(xzjittern,xzjitterp)),
           base = get_random_base(pcgr),
           decor = get_random_decor(pcgr),
-          quality = get_random_quality(pcgr),
+          quality = quality_bias[pcgr:next(1,10)],
           exact = false,
           destination = (function() -- placeholder to be converted to an actual gate
             local nhashes = {
