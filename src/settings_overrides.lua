@@ -3,7 +3,7 @@
 --
 
 -- Give extenders a lot more range
-if minetest.settings:get_bool("worldgate.superextenders",true) then
+if worldgate.settings.superextenders then
   -- Global extender values
   telemosaic.extender_ranges = { 250, 750, 1500 }
 
@@ -34,7 +34,7 @@ if telemosaic.teleport_delay < min_delay then
 end
 
 -- Override beacons to give off light if configured
-if minetest.settings:get_bool("worldgate.beaconglow",true) then
+if worldgate.settings.beaconglow then
   for _,beacon in ipairs({
     "telemosaic:beacon",
     "telemosaic:beacon_protected",
@@ -49,7 +49,7 @@ end
 
 -- Override right-click function to consume mese crystal shards after use as a
 -- Telemosaic key, if configured
-if minetest.settings:get_bool("worldgate.destroykeys",true) then
+if worldgate.settings.destroykeys then
   local trc = telemosaic.rightclick
   telemosaic.rightclick = function(pos, node, player, itemstack, pointed_thing)
     local item = itemstack:get_name()
