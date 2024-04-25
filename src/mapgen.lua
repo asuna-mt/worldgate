@@ -266,7 +266,10 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
     for _,brick in ipairs(bricks) do
       if pcgr:next(1,brick_degrade_chance) == 1 then
         local brick_node = minetest.get_node(brick)
-        minetest.swap_node(brick,{ name = bricks_map[brick_node.name], param2 = brick_node.param2 })
+        local cobble_node = bricks_map[brick_node.name]
+        if cobble_node then
+          minetest.swap_node(brick,{ name = cobble_node, param2 = brick_node.param2 })
+        end
       end
     end
 
