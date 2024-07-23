@@ -20,7 +20,7 @@ worldgate = {
     breakage = tonumber(minetest.settings:get("worldgate.breakage",8) or 8),
     superextenders = minetest.settings:get_bool("worldgate.superextenders",true),
     beaconglow = minetest.settings:get_bool("worldgate.beaconglow",true),
-    destroykeys = minetest.settings:get_bool("worldgate.destroykeys",false),
+    destroykeys = minetest.settings:get_bool("worldgate.destroykeys",true),
   },
 }
 
