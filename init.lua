@@ -24,6 +24,11 @@ worldgate = {
   },
 }
 
+-- Disable mapgen via Asuna settings if set
+if minetest.get_modpath("asuna_core") then
+  worldgate.settings.mapgen = minetest.settings:get_bool("asuna.worldgate",true)
+end
+
 --
 -- Modules
 --
