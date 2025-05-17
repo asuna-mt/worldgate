@@ -148,13 +148,13 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
 
       -- Probe heightmap for suitable location
       local heightmap = minetest.get_mapgen_object("heightmap") or {}
-      for i = 1, 8 do
+      for i = 1, 8 do repeat
         local randomx = pcgr:next(emin.x,emax.x)
         local randomz = pcgr:next(emin.z,emax.z)
         local heightmapy = heightmap[index2d(randomx,randomz)]
 
         if not heightmapy then
-          goto retry_probe
+          break
         end
 
         local pos = va:index(randomx,heightmapy,randomz)
@@ -164,24 +164,23 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
         if cid and cid ~= minetest.CONTENT_AIR and cid ~= minetest.CONTENT_IGNORE and above and above ~= cid then
           -- Only spawn underwater if allowed
           if not underwaterspawn and (water[cid] or water[above]) then
-            goto retry_probe
+            break
           end
 
           -- Check for valid space above
           for ypos = pos + ystride * 2, pos + ystride * 10, ystride do
             local ydata = vdata[ypos]
             if not ydata or ydata == minetest.CONTENT_IGNORE or (not underwaterspawn and water[ydata]) then
-              goto retry_probe
+              break
             end
           end
 
           -- A valid location was found on the heightmap
           location = vn(randomx,heightmapy,randomz)
           strategy = "heightmap"
-          break
+          i = 10 -- break outer loop
         end
-        ::retry_probe::
-      end
+      until true end
 
       -- If no heightmap location found, then generate on a random node under air
       if not location then
@@ -273,7 +272,7 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
       end
     end
 
-    -- Write the gate's position to the beacon's node meta for linking purposes
+    -- Write the gate's position to the beacon's node meta for linking purposes if possible
     local beacon = (function()
       for dy = 2, 0, -1 do
         local beacon_location = location:add(vn(0,dy,0))
@@ -283,11 +282,16 @@ minetest.register_on_generated(function(minp,maxp,blockseed)
         end
       end
     end)()
-    local nodemeta = minetest.get_meta(beacon)
-    nodemeta:set_string("worldgate:source",minetest.pos_to_string(gate.position))
-    if gate.destination then
-      nodemeta:set_string("worldgate:destination",minetest.pos_to_string(gate.destination))
-      minetest.swap_node(beacon,{ name = "telemosaic:beacon", param2 = 0 })
+
+    if beacon then
+      local nodemeta = minetest.get_meta(beacon)
+      nodemeta:set_string("worldgate:source",minetest.pos_to_string(gate.position))
+      if gate.destination then
+        nodemeta:set_string("worldgate:destination",minetest.pos_to_string(gate.destination))
+        minetest.swap_node(beacon,{ name = "telemosaic:beacon", param2 = 0 })
+      end
+    else
+      minetest.log("warning","Unable to set beacon node meta for worldgate at " .. minetest.pos_to_string(location))
     end
 
     -- Fix lighting
